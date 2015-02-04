@@ -14,6 +14,7 @@ class NewsSpider:
         self.soure = SOURE_TYPE[soure]
         self.newsList = []
         self.newsDetail = []
+        self.limit = 0
 
     def setDate(self, date):
         ### format = yyyy-mm-dd
@@ -22,13 +23,17 @@ class NewsSpider:
     def setSoure(self, soure):
         self.soure = soure
 
+    def setLimit(self, limit):
+        self.limit = int(limit/11)+1
+
     def getNewsList(self):
         requester = requests.Session()
         ### first, get number of page of list
-        page = self.getNewsListPage()
+        if self.limit == 0:
+            self.limit = self.getNewsListPage()
         ### getlist
         req_url = self.date+'-'+str(self.soure)
-        for num in range (1, page+1):
+        for num in range (1, self.limit+1):
             r = requester.get(URL+req_url+'?page='+str(num))
             content = BeautifulSoup(r.text, 'lxml')
             newsList = content.article.find_all('h2')
@@ -43,7 +48,7 @@ class NewsSpider:
         content = BeautifulSoup(r.text, 'lxml')
         pag = content.find('div', class_='pagination clear-fix').find_all('li')
         page =  re.findall('page=([0-9]*)' ,pag[len(pag)-1].a['href'], re.S)[0]
-        return page
+        return int(page)
 
     def getNewsItemContent(self):
         requester = requests.Session()
@@ -68,11 +73,17 @@ class NewsSpider:
 
             self.newsDetail.append(parserData.copy())
 
-
+    def output(self):
+        for newsItem in self.newsDetail:
+            print 'Title:'+newsItem['title']
+            print 'Date:'+newsItem['date']
+            print 'Type:'+newsItem['type']
+            print 'Report:'+newsItem['report']
+            print 'Content:'+newsItem['newsText']
 
 spider = NewsSpider('chinatimes')
 spider.setDate('2015-01-28')
+spider.setLimit(1)
 spider.getNewsList()
 spider.getNewsItemContent()
-
-print spider.newsDetail
+spider.output()
