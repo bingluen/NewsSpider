@@ -36,7 +36,7 @@ class NewsSpider:
 
 
             for newsContent in newsText.find_all('p'):
-                parserContent['newsText'] = parserContent['newsText'] + newsContent.string
+                parserContent['newsText'] = parserContent['newsText'] + newsContent.text
             ### get news type
 
             parserContent['type'] = content.select('div > .guide')[0].find_all('a')[1].string
@@ -50,7 +50,7 @@ class NewsSpider:
             print 'Title:' + news['title']
             print 'Date:' + news['newsDate']
             print 'Type:' + news['type']
-            ###print 'Content:' + news['newsText']
+            print 'Content:' + news['newsText']
             f.write(str(news))
 
         f.close()
@@ -58,7 +58,7 @@ class NewsSpider:
 
 
 
-spider = NewsSpider(1, 10)
+spider = NewsSpider(853155, 853156)
 spider.getNewsRowContent()
 spider.parserNewsContent()
 spider.outputResultAsFile()
