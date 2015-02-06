@@ -1,7 +1,9 @@
 # coding=UTF-8
+# -*- coding: UTF-8 -*-
 import requests
 from bs4 import BeautifulSoup
 import re
+import os
 
 URL = 'http://www.chinatimes.com/history-by-date/'
 NEWS_CONTENT_URL = 'http://www.chinatimes.com/newspapers/'
@@ -10,10 +12,10 @@ HEADER = {'User_agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:34.0) Gecko/
                 'Accept': '"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"'}
 
 class NewsSpider:
-    def __init__(self, soure):
+    def __init__(self, soure, outputDirectory):
         self.soure = SOURE_TYPE[soure]
+        self.outputDirectory = outputDirectory
         self.newsList = []
-        self.newsDetail = []
         self.limit = 0
 
     def setDate(self, date):
@@ -32,6 +34,7 @@ class NewsSpider:
         if self.limit == 0:
             self.limit = self.getNewsListPage()
         ### getlist
+        count = 1
         req_url = self.date+'-'+str(self.soure)
         for num in range (1, self.limit+1):
             r = requester.get(URL+req_url+'?page='+str(num))
@@ -40,6 +43,9 @@ class NewsSpider:
             for listItem in newsList:
                 itemId = re.findall('([-0-9]+)', listItem.a['href'], re.S)[0]
                 self.newsList.append(itemId)
+            print u'catched list of page ' + str(count) +'/' + str(self.limit)
+            count = count + 1
+
 
     def getNewsListPage(self):
         requester = requests.Session()
@@ -52,6 +58,7 @@ class NewsSpider:
 
     def getNewsItemContent(self):
         requester = requests.Session()
+        count = 0
         for newsItem in self.newsList:
             r = requester.get(NEWS_CONTENT_URL+newsItem)
             content = BeautifulSoup(r.text, 'lxml')
@@ -71,19 +78,46 @@ class NewsSpider:
 
             parserData['report'] = content.aside.find('div', class_='page_rp_box').find('div', class_='name').string
 
-            self.newsDetail.append(parserData.copy())
+            self.output(parserData, count)
+            print u'catched content of ' + str(count) + '/' + str(len(self.newsList))
+            count = count + 1
 
-    def output(self):
-        for newsItem in self.newsDetail:
-            print 'Title:'+newsItem['title']
-            print 'Date:'+newsItem['date']
-            print 'Type:'+newsItem['type']
-            print 'Report:'+newsItem['report']
-            print 'Content:'+newsItem['newsText']
+    def output(self, newsContent, count, option = {}):
+        if not os.path.exists(self.outputDirectory):
+            os.mkdir(self.outputDirectory)
+        if not os.path.exists(self.outputDirectory+'/'+newsContent['type']):
+            os.mkdir(self.outputDirectory+'/'+newsContent['type'])
 
-spider = NewsSpider('chinatimes')
-spider.setDate('2015-01-28')
-spider.setLimit(1)
-spider.getNewsList()
-spider.getNewsItemContent()
-spider.output()
+        f = open(self.outputDirectory+'/'+newsContent['type']+'/'+newsContent['date']+'_'+str(count)+'.txt', 'w')
+        if not ('title' in option) or ('title' in option and option['title'] != False):
+            ###print 'Title:'+newsContent['title']
+            f.write('Title:'+newsContent['title'].encode('utf-8'))
+            
+
+        if not ('date' in option) or ('date' in option and opotion['date'] != False):
+            ###print 'Date:'+newsContent['date']
+            f.write('Date:'+newsContent['date'])
+                
+            
+
+        if not ('type' in option) or ('type' in option and option['tpye'] != False):
+            ###print 'Type:'+newsContent['type']
+            f.write('Type:'+newsContent['type'].encode('utf-8'))
+
+        if not ('report' in option) or ('report' in option and option['report'] != False):
+            ###print 'Report:'+newsContent['report']
+            f.write('Report:'+newsContent['report'].encode('utf-8'))
+            
+
+
+        if not ('content' in option) or ('content' in option and option['content'] != False):
+            ###print 'Content:'+newsContent['newsText']
+            f.write('Content:'+newsContent['newsText'].encode('utf-8'))
+
+        f.close()
+
+    def execute(self):
+        self.getNewsList()
+        self.getNewsItemContent()
+
+
