@@ -82,8 +82,11 @@ class NewsSpider:
 
             parserData['type'] = re.findall('([^\r\n ]+)', page_index[len(page_index)-1].span.string, re.S)[0]
 
-
-            parserData['report'] = content.aside.find('div', class_='page_rp_box').find('div', class_='name').string
+            report = content.aside.find('div', class_='page_rp_box').find('div', class_='name').string
+            if report is not None:
+                parserData['report'] = report
+            else:
+                parserData['report'] = 'None'
 
             self.output(parserData, count)
             print u'catched content of ' + str(count) + '/' + str(len(self.newsList))
