@@ -3,8 +3,8 @@ import chinatimes
 import ltn
 import datetime
 
-startDay = datetime.date(int(sys.argv[2][0:4]), int(sys.argv[2][4:6]), int(sys.argv[2][6:8]))
-endDay = datetime.date(int(sys.argv[3][0:4]), int(sys.argv[3][4:6]), int(sys.argv[3][6:8]))
+startDay = datetime.date(int(sys.argv[2][0:4]), int(sys.argv[2][5:7]), int(sys.argv[2][8:10]))
+endDay = datetime.date(int(sys.argv[3][0:4]), int(sys.argv[3][5:7]), int(sys.argv[3][8:10]))
 
 if sys.argv[1] == 'chinatimes':
 	chinatime_spider = chinatimes.NewsSpider('chinatimes', 'chinatimes')
