@@ -29,7 +29,7 @@ class NewsSpider:
         page = self.getNumOfPageOfList(newsType)
         for num in range(1, page+1):
             url = URL+'newspaper/'+newsType+'/'+self.date+'?page='+str(num)
-            r = BeautifulSoup(requester.get(url, headers=HEADER).text, 'lxml')
+            r = BeautifulSoup(requester.get(url, headers=HEADER).text, 'html.parser')
             for listItem in r.find_all('li', class_='lipic'):
                 newsList.append(listItem.a['href'][1:])
         self.list = newsList
@@ -37,7 +37,7 @@ class NewsSpider:
 
     def getNumOfPageOfList(self, newsType):
         url = URL+'newspaper/'+newsType+'/'+self.date
-        r = BeautifulSoup(requester.get(url, headers=HEADER).text, 'lxml')
+        r = BeautifulSoup(requester.get(url, headers=HEADER).text, 'html.parser')
         return int(re.findall(u'共有'+' ([0-9]+)', r.find_all('div', class_='tit')[0].string, re.S)[0])/20+1
 
 
@@ -53,7 +53,7 @@ class NewsSpider:
 
     def parserNewsContent(self, rowContent):
         parserContent = {}
-        content = BeautifulSoup(rowContent, "lxml")
+        content = BeautifulSoup(rowContent, "html.parser")
         parserContent['title'] = content.h1.string
         newsText = content.find(id="newstext")
         parserContent['newsDate'] = newsText.span.string
