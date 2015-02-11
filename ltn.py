@@ -45,7 +45,10 @@ class NewsSpider:
         count = 1
         for item in self.list:
             r = requester.get(URL+item, headers=HEADER)
+            ##print URL+item
             parserContent = self.parserNewsContent(r.text)
+            if parserContent == False:
+                continue
             parserContent['type'] = newsType
             self.outputResultAsFile(parserContent, count)
             print "catched "+str(count)+' of '+ str(len(self.list))
@@ -54,6 +57,8 @@ class NewsSpider:
     def parserNewsContent(self, rowContent):
         parserContent = {}
         content = BeautifulSoup(rowContent, "html.parser")
+        if content.h1 is None:
+            return False
         parserContent['title'] = content.h1.string
         newsText = content.find(id="newstext")
         parserContent['newsDate'] = newsText.span.string
