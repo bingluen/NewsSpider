@@ -1,6 +1,7 @@
 import sys
 import chinatimes
 import ltn
+import ltn_realtimes
 import datetime
 
 startDay = datetime.date(int(sys.argv[2][0:4]), int(sys.argv[2][5:7]), int(sys.argv[2][8:10]))
@@ -17,6 +18,15 @@ if sys.argv[1] == 'chinatimes':
 
 if sys.argv[1] == 'ltn':
 	s = ltn.NewsSpider('ltn')
+	currentDay = startDay
+	while currentDay < endDay:
+		print 'Cache ltn '+ str(currentDay)
+		s.setDate(str(currentDay))
+		s.execute()
+		currentDay += datetime.timedelta(days=1)
+
+if sys.argv[1] == 'ltn-realtimes':
+	s = ltn_realtimes.NewsSpider('ltn_realtimes')
 	currentDay = startDay
 	while currentDay < endDay:
 		print 'Cache ltn '+ str(currentDay)
@@ -54,6 +64,7 @@ if sys.argv[1] == 'chinatimes-realtime':
 if sys.argv[1] == '--all':
 	chinatime_spider = chinatimes.NewsSpider('chinatimes', 'chinatimes')
 	s = ltn.NewsSpider('ltn')
+	ltn_realtimes = ltn_realtimes.NewsSpider('ltn_realtimes')
 	currentDay = startDay
 	while currentDay < endDay:
 		chinatime_spider.setDate(str(currentDay))
@@ -80,4 +91,9 @@ if sys.argv[1] == '--all':
 		print 'Cache ltn '+ str(currentDay)
 		s.setDate(str(currentDay))
 		s.execute()
+		currentDay += datetime.timedelta(days=1)
+
+		print 'Cache ltn realtime '+ str(currentDay)
+		ltn_realtimes.setDate(str(currentDay))
+		ltn_realtimes.execute()
 		currentDay += datetime.timedelta(days=1)
