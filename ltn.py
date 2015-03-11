@@ -126,8 +126,3 @@ class NewsSpider:
         for newsType in NEW_CLASS:
             if self.getList(newsType) != 0:
                 self.getNewsContent(newsType)
-
-s = NewsSpider('ltn')
-s.setDate('2015-03-10')
-s.getList('opinion')
-s.getNewsContent('opinion')
