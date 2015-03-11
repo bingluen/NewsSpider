@@ -12,6 +12,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import re
+import string
 
 requester = requests.Session()
 
@@ -27,6 +28,8 @@ class NewsSpider:
     def getList(self, newsType):
         newsList = []
         page = self.getNumOfPageOfList(newsType)
+        if page == 0:
+            return 0
         for num in range(1, page+1):
             url = URL+'list/'+newsType+'/'+self.date+'?page='+str(num)
             r = BeautifulSoup(requester.get(url, headers=HEADER).text, 'html.parser')
@@ -39,7 +42,10 @@ class NewsSpider:
         url = URL+'list/'+newsType
         r = BeautifulSoup(requester.get(url, headers=HEADER).text, 'html.parser')
         pag = r.find('div', id='page').find_all('a')
-        return int(re.findall('page=([0-9]+)', pag[len(pag)-1]['href'], re.S)[0])
+        count = re.findall('page=([0-9]+)', pag[len(pag)-1]['href'], re.S)
+        if len(count) == 0:
+            return 0
+        return int(count[0])
 
 
     def getNewsContent(self, newsType):
@@ -49,10 +55,11 @@ class NewsSpider:
             ##print URL+item
             parserContent = self.parserNewsContent(r.text)
             if parserContent == False:
+                print "Error: catched "+str(count)+' / '+ str(len(self.list)) + " failed, in type: " + newsType + ' date: ' + self.date
                 continue
             parserContent['type'] = newsType
             self.outputResultAsFile(parserContent, count)
-            print "catched "+str(count)+' of '+ str(len(self.list))
+            ##print "catched "+str(count)+' of '+ str(len(self.list))
             count = count + 1
 
     def parserNewsContent(self, rowContent):
@@ -62,7 +69,7 @@ class NewsSpider:
             return False
         parserContent['title'] = content.h1.string
         newsText = content.find(id="newstext")
-        parserContent['newsDate'] = newsText.span.string
+        parserContent['newsDate'] = filter(lambda x: x in string.printable, newsText.span.text).replace(':', '_')
         parserContent['newsText'] = ''
 
 
@@ -81,15 +88,15 @@ class NewsSpider:
             os.mkdir(self.outputDirectory)
         if not os.path.exists(self.outputDirectory+'/'+newsContent['type']):
             os.mkdir(self.outputDirectory+'/'+newsContent['type'])
-
-        f = open(self.outputDirectory+'/'+newsContent['type']+'/'+newsContent['newsDate']+'_'+str(count)+'.txt', 'w')
+        filename = self.outputDirectory+'/'+newsContent['type']+'/'+newsContent['newsDate']+'_'+str(count)+'.txt'
+        f = open(filename, 'w')
         if not ('title' in option) or ('title' in option and option['title'] != False):
             ###print 'Title:'+newsContent['title']
             f.write('Title:'+newsContent['title'].encode('utf-8'))
 
         if not ('date' in option) or ('date' in option and opotion['date'] != False):
             ###print 'Date:'+newsContent['newsDate']
-            f.write('Date:'+newsContent['newsDate'].encode('utf-8'))
+            f.write('Date:'+newsContent['newsDate'])
                 
         if not ('type' in option) or ('type' in option and option['tpye'] != False):
             ###print 'Type:'+newsContent['type']
@@ -103,14 +110,7 @@ class NewsSpider:
         f.close()
 
     def execute(self):
+        print "catch ltn realtime News"
         for newsType in NEW_CLASS:
-            print "catch News of " + newsType + ":"
-            print "catch list of " + newsType + "...."
-            self.getList(newsType)
-            print "catch news content Total:"+ str(len(self.list))
-            self.getNewsContent(newsType)
-            print ''
-
-
-s = NewsSpider('ltn-realtimes')
-s.execute()
+            if self.getList(newsType) != 0:
+                self.getNewsContent(newsType)

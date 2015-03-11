@@ -37,6 +37,8 @@ class NewsSpider:
         ### first, get number of page of list
         if self.limit == 0:
             self.limit = self.getNewsListPage()
+            if self.limit == 0:
+                return
         ### getlist
         count = 1
         req_url = self.date+'-'+str(self.soure)
@@ -57,7 +59,10 @@ class NewsSpider:
         r = requester.get(URL+req_url)
         content = BeautifulSoup(r.text, 'html.parser')
         pag = content.find('div', class_='pagination clear-fix').find_all('li')
-        page =  re.findall('page=([0-9]*)' ,pag[len(pag)-1].a['href'], re.S)[0]
+        if pag[len(pag)-1].a is None:
+            print u'Error: can\'t catch news list of date:' + self.date
+            return 0
+        page = re.findall('page=([0-9]*)' ,pag[len(pag)-1].a['href'], re.S)[0]
         return int(page)
 
     def getNewsItemContent(self):
@@ -101,28 +106,28 @@ class NewsSpider:
         f = open(self.outputDirectory+'/'+newsContent['type']+'/'+newsContent['date']+'_'+str(count)+'.txt', 'w')
         if not ('title' in option) or ('title' in option and option['title'] != False):
             ###print 'Title:'+newsContent['title']
-            f.write('Title:'+newsContent['title'].encode('utf-8'))
+            f.write('Title:'+newsContent['title'].encode('utf-8')+'\n\r')
             
 
         if not ('date' in option) or ('date' in option and opotion['date'] != False):
             ###print 'Date:'+newsContent['date']
-            f.write('Date:'+newsContent['date'])
+            f.write('Date:'+newsContent['date']+'\n\r')
                 
             
 
         if not ('type' in option) or ('type' in option and option['tpye'] != False):
             ###print 'Type:'+newsContent['type']
-            f.write('Type:'+newsContent['type'].encode('utf-8'))
+            f.write('Type:'+newsContent['type'].encode('utf-8')+'\n\r')
 
         if not ('report' in option) or ('report' in option and option['report'] != False):
             ###print 'Report:'+newsContent['report']
-            f.write('Report:'+newsContent['report'].encode('utf-8'))
+            f.write('Report:'+newsContent['report'].encode('utf-8')+'\n\r')
             
 
 
         if not ('content' in option) or ('content' in option and option['content'] != False):
             ###print 'Content:'+newsContent['newsText']
-            f.write('Content:'+newsContent['newsText'].encode('utf-8'))
+            f.write('Content:'+newsContent['newsText'].encode('utf-8')+'\n\r')
 
         f.close()
 
