@@ -1,99 +1,106 @@
-import sys
-import chinatimes
-import ltn
-import ltn_realtimes
+# coding=UTF-8
+# -*- coding: UTF-8 -*-
+
+### news spider by Erickson Juang
+
+### this module need request and beautifulsoup4
+
+import requests
+from bs4 import BeautifulSoup
+import re
+import os
 import datetime
 
-if len(sys.argv) > 2 and sys.argv[1] != 'ltn-realtime':
-	startDay = datetime.date(int(sys.argv[2][0:4]), int(sys.argv[2][5:7]), int(sys.argv[2][8:10]))
-	endDay = datetime.date(int(sys.argv[3][0:4]), int(sys.argv[3][5:7]), int(sys.argv[3][8:10]))
+###define const
 
-if sys.argv[1] == 'chinatimes':
-	chinatime_spider = chinatimes.NewsSpider('chinatimes', 'chinatimes')
-	currentDay = startDay
-	while currentDay < endDay:
-		print 'Cache chinatimes '+ str(currentDay)
-		chinatime_spider.setDate(str(currentDay))
-		chinatime_spider.execute()
-		currentDay += datetime.timedelta(days=1)
+URL = {
+	'chinatimes' : {
+		'content' : {
+			'newspaper' : 'http://www.chinatimes.com/newspapers/', 
+			'realtime' : 'http://www.chinatimes.com/realtimenews/'
+		},
 
-if sys.argv[1] == 'ltn':
-	s = ltn.NewsSpider('ltn')
-	currentDay = startDay
-	while currentDay < endDay:
-		print 'Cache ltn '+ str(currentDay)
-		s.setDate(str(currentDay))
-		s.execute()
-		currentDay += datetime.timedelta(days=1)
+		###
+		# list url = list + yyyy-mm-dd + '-' + soure
 
-if sys.argv[1] == 'ltn-realtimes':
-	ltn = ltn_realtimes.NewsSpider('ltn_realtimes')
-	###currentDay = startDay
-	###while currentDay < endDay:
-	###print 'Cache ltn '+ str(currentDay)
-		###ltn.setDate(str(currentDay))
-	ltn.execute()
-		###currentDay += datetime.timedelta(days=1)
+		'list' : 'http://www.chinatimes.com/history-by-date/',
+		'soure' : {
+			'chinatimes': '2601',
+			 'ctee': '2602', 
+			 'want': '2603', 
+			 'realtime': '2604'
+		}
+	},
 
-if sys.argv[1] == 'ctee':
-	ctee = chinatimes.NewsSpider('ctee', 'ctee')
-	currentDay = startDay
-	while currentDay < endDay:
-		print 'Cache ctee '+ str(currentDay)
-		ctee.setDate(str(currentDay))
-		ctee.execute()
-		currentDay += datetime.timedelta(days=1)
+	'ltn' : {
+		'root': 'http://news.ltn.com.tw/',
+		'list': {
+			'newspaper': 'http://news.ltn.com.tw/newspaper/',
+			'realtime' : 'http://news.ltn.com.tw/list/'
+		},
 
-if sys.argv[1] == 'want':
-	want = chinatimes.NewsSpider('want', 'want')
-	currentDay = startDay
-	while currentDay < endDay:
-		print 'Cache want '+ str(currentDay)
-		want.setDate(str(currentDay))
-		want.execute()
-		currentDay += datetime.timedelta(days=1)
+		'soure': ['politics', 'society', 'local', 'life'
+        , 'opinion', 'world', 'business', 'sports'
+        , 'entertainment', 'consumer', 'supplement'
+        , 'focus'],
 
-if sys.argv[1] == 'chinatimes-realtime':
-	realtime = chinatimes.NewsSpider('realtime', 'chinatimes-realtime')
-	###currentDay = startDay
-	print 'Cache chinatimes realtime '+ str(currentDay)
-	###realtime.setDate(str(currentDay))
-	realtime.execute()
-	###currentDay += datetime.timedelta(days=1)
+        'content': {
+        	'opinion' : 'http://talk.ltn.com.tw/article/paper/'
+        	### Other use root + path which get by list
+        }
+	}
+}
 
-if sys.argv[1] == '--all':
-	chinatime_spider = chinatimes.NewsSpider('chinatimes', 'chinatimes')
-	s = ltn.NewsSpider('ltn')
-	ltn_realtimes = ltn_realtimes.NewsSpider('ltn_realtimes')
-	currentDay = startDay
-	while currentDay < endDay:
-		chinatime_spider.setDate(str(currentDay))
-		print 'Cache chinatimes '+ str(currentDay)
-		chinatime_spider.setSoure('chinatimes')
-		chinatime_spider.setDirectory('chinatimes')
-		chinatime_spider.execute()
+###Chinatimes news Spider###
 
-		print 'Cache ctee '+ str(currentDay)
-		chinatime_spider.setSoure('ctee')
-		chinatime_spider.setDirectory('ctee')
-		chinatime_spider.execute()
+class chinatimesSpider:
+	def __init__(self):
+		self.newsList = []
+		self.date = ''
+		self.soure = ''
+		self.directory = ''
 
-		print 'Cache want '+ str(currentDay)
-		chinatime_spider.setSoure('want')
-		chinatime_spider.setDirectory('wnat')
-		chinatime_spider.execute()
+	def setDate(self, date):
+		### format of date is yyyy-mm-dd
+		try:
+        	inputDate = datetime.datetime.strptime(date_text, '%Y-%m-%d')
+    	except ValueError:
+        	raise ValueError("Incorrect date format, should be YYYY-mm-dd")
 
-		print 'Cache chinatimes realtime '+ str(currentDay)
-		chinatime_spider.setSoure('realtime')
-		chinatime_spider.setDirectory('chinatimes-realtime')
-		chinatime_spider.execute()
+        if inputDate > datetime.datetime.now()
+        	raise ValueError("Incorrect date, is is bigger than now")
 
-		print 'Cache ltn '+ str(currentDay)
-		s.setDate(str(currentDay))
-		s.execute()
-		currentDay += datetime.timedelta(days=1)
+		self.date = date
 
-		print 'Cache ltn realtime '+ str(currentDay)
-		ltn_realtimes.setDate(str(currentDay))
-		ltn_realtimes.execute()
-		currentDay += datetime.timedelta(days=1)
+	def setSoure(self, soure):
+		try:
+        	URL['chinatimes']['soure'][soure]
+    	except KeyError:
+        	raise KeyError("Incorrect news soure (only chinatimes / ctee / want / realtime)")
+
+		self.soure = URL['chinatimes']['soure'][soure]
+
+	def setDir(self, mDir):
+		if not os.path.exists(mDir):
+			try:
+				os.mkdir(mdir)
+			except OSError:
+				raise OSError("Can't create folder, please check permission")
+		self.directory = mDir
+
+	def __getList(self):
+		### get number of page of list
+	
+	def __getNumOfPageOfList(self):
+		try:
+			r = requests.get(URL['chinatimes']['list']+str(self.date)+'-'+URL['chinatimes']['soure'][self.soure])
+		except requests.exceptions.ConnectionError:
+			raise requests.exceptions.ConnectionError("連線失敗，請檢查網路連線狀態。")
+
+		DOM = BeautifulSoup(r.text, 'html.parser')
+
+		try:
+			numPage = DOM.find('div', class_='pagination').find('li', class_='last')
+		except Exception, e:
+			raise
+
