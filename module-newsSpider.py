@@ -278,9 +278,7 @@ class ltnSpider:
 				pag = DOM.find('div', id='page').find_all('a')
 				numPage = int(re.findall('page=([0-9]+)', pag[len(pag) - 1]['href'], re.S)[0])
 			except TypeError:
-				self.logFile.write( u"Error: 無法取得 ", str(self.date)+' '+self.soure, u" 之清單列表")
-				self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure)
-				raise TypeError("Can't getlist")
+				raise TypeError(u"Error: 無法取得 ", str(self.date)+' '+self.soure, u" 之清單列表"+"\nSkip "+str(self.date)+' '+self.soure)
 
 
 		return numPage
