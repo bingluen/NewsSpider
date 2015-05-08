@@ -16,7 +16,7 @@ import codecs
 
 URL = {
 	'chinatimes' : {
-		'root' : 'http://www.chinatimes.com/',
+		'root' : 'http://www.chinatimes.com',
 
 		###
 		# list url = list + yyyy-mm-dd + '-' + soure
@@ -49,6 +49,11 @@ URL = {
 	}
 }
 
+proxy = {
+	"http": "http://proxy3.yzu.edu.tw:8080",
+	"https": "https://proxy3.yzu.edu.tw:8080"
+}
+
 ###Chinatimes news Spider###
 
 class chinatimesSpider:
@@ -59,11 +64,15 @@ class chinatimesSpider:
 		self.directory = ''
 		self.logFile = codecs.open("chinatimes-NewsSpider-log-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
 		self.logFile.write(u'\ufeff')
-		self.logListFile = codecs.open("chinatimes-NewsSpider-log-List-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
+		self.logListFile = codecs.open("chinatimes-NewsSpider-log-List-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".csv", "w", "utf-8")
 		self.logListFile.write(u'\ufeff')
+		self.ReportLog = codecs.open("[Research&Development]chinatimes-NewsSpider-ReportLog-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
+		self.ReportLog.write(u'\ufeff')
 
 	def __del__(self):
 		self.logFile.close()
+		self.logListFile.colse()
+		self.ReportLog.close()
 
 	def setDate(self, date):
 		### format of date is yyyy-mm-dd
@@ -105,7 +114,7 @@ class chinatimesSpider:
 		
 		for page in range(1, numPage+1):
 			try:
-				r = requests.get(URL['chinatimes']['list']+str(self.date)+'-'+URL['chinatimes']['soure'][self.soure]+'?page='+str(page))
+				r = requests.get(URL['chinatimes']['list']+str(self.date)+'-'+URL['chinatimes']['soure'][self.soure]+'?page='+str(page), proxies=proxy)
 			except requests.exceptions.ConnectionError:
 				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。")
 				self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+" 第 "+page+" 頁清單")
@@ -119,7 +128,7 @@ class chinatimesSpider:
 	
 	def __getNumOfPageOfList(self):
 		try:
-			r = requests.get(URL['chinatimes']['list']+str(self.date)+'-'+URL['chinatimes']['soure'][self.soure])
+			r = requests.get(URL['chinatimes']['list']+str(self.date)+'-'+URL['chinatimes']['soure'][self.soure], proxies=proxy)
 		except requests.exceptions.ConnectionError:
 			#self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。")
 			#self.logFile.write( )
@@ -140,7 +149,7 @@ class chinatimesSpider:
 	def __getContent(self):
 		for news in self.newsList:
 			try:
-				r = requests.get(URL['chinatimes']['root']+news)
+				r = requests.get(URL['chinatimes']['root']+news, proxies=proxy)
 			except requests.exceptions.ConnectionError:
 				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。")
 				self.logFile.write( "\tSkip "+URL['chinatimes']['root']+news)
@@ -149,6 +158,7 @@ class chinatimesSpider:
 
 			parseResult = {}
 
+			parseResult['url'] = URL['chinatimes']['root']+news
 			
 			try:
 				#Get title
@@ -157,7 +167,8 @@ class chinatimesSpider:
 				#parseResult['title'] = DOM.article.header.h1.string
 
 				#Get date
-				parseResult['date'] = re.findall('([0-9]{4}\/[0-9]{2}\/[0-9]{2})', DOM.time['datetime'], re.S)[0]
+				dataInfo = re.findall('([0-9]{4})\/([0-9]{2})\/([0-9]{2})', DOM.time['datetime'], re.S)[0]
+				parseResult['date'] = dataInfo[0]+dataInfo[1]+dataInfo[2]
 
 				#Get time
 				parseResult['time'] = re.findall('([0-9]{2}:[0-9]{2})', DOM.time.text, re.S)[0]
@@ -174,6 +185,9 @@ class chinatimesSpider:
 				#Get type
 				pag = DOM.article.ul.find_all('li')
 				parseResult['type'] = re.findall('[^ \t\r\n]+', pag[len(pag) - 1].text, re.S)[0]
+
+				#Get click
+				parseResult['click'] = DOM.find('div', class_='art_click').find('span', class_='num').text
 
 			except TypeError:
 				raise ParseError( "Error: can't parse the news - "+URL['chinatimes']['root']+news)
@@ -196,31 +210,38 @@ class chinatimesSpider:
 				raise OSError("Can't create folder, please check permission")
 		"""	
 		#f = open(self.directory+'/'+data['type']+'/'+data['date'][0:4]+'-'+data['date'][5:7]+'-'+data['date'][8:10]+'_'+str(count)+'.txt', 'w')
-		f = codecs.open(self.directory+'/'+data['date'][0:4]+'-'+data['date'][5:7]+'-'+data['date'][8:10]+'_'+str(count)+'.txt', 'w', 'utf-8')
-		fXml = codecs.open(self.directory+'/'+data['date'][0:4]+'-'+data['date'][5:7]+'-'+data['date'][8:10]+'_'+str(count)+'.xml', 'w', 'utf-8')
+		f = codecs.open(self.directory+'/'+data['date']+'_'+str(count)+'.txt', 'w', 'utf-8')
+		fXml = codecs.open(self.directory+'/'+data['date']+'_'+str(count)+'.xml', 'w', 'utf-8')
 		f.write(u'\ufeff')
 		fXml.write(u'\ufeff')
 		
+		f.write(u'Url:'+data['url']+'\r\n')
 		f.write(u'Title:'+data['title']+'\r\n')
-		f.write('Date:'+data['date']+'\r\n')
 		f.write('Time:'+data['time']+'\r\n')
-		f.write(u'Type:'+data['type']+'\r\n')
-		f.write(u'Reporter:'+data['report']+'\r\n')
+		f.write('Date:'+data['date']+'\r\n')
+		f.write(u'ClickNo:'+data['click']+'\r\n')
+		f.write(u'Category:'+data['type']+'\r\n')
+		f.write(u'Author:'+data['report']+'\r\n')
 		f.write(u'Content:'+data['newsText']+'\r\n')
 		f.close()
 
 		## XML output
+		fXml.write('<Article>\r\n')
+		fXml.write(u'<Url>'+data['url']+'<Url>\r\n')
 		fXml.write('<ID>'+str(count)+'</ID>\r\n')
 		fXml.write(u'<Category>'+data['type']+'</Category>\r\n')
-		fXml.write('<Date>'+data['date']+'</Date>\r\n')
 		fXml.write('<Time>'+data['time']+'</Time>\r\n')
+		fXml.write('<Date>'+data['date']+'</Date>\r\n')
+		fXml.write(u'<ClickNo>'+data['click']+'</ClickNo>\r\n')
 		fXml.write(u'<Author1>'+data['report']+'</Author1>\r\n')
 		fXml.write(u'<Title>'+data['title']+'</Title>\r\n')
 		fXml.write(u'<Content>'+data['newsText']+'</Content>\r\n')
+		fXml.write('</Article>')
 		fXml.close()
 
 		#listLog
 		self.logListFile.write(self.directory+'/'+data['date'][0:4]+'-'+data['date'][5:7]+'-'+data['date'][8:10]+'_'+str(count)+'.xml'+','+str(count)+','+data['title']+','+data['date']+','+data['type']+','+data['report']+'\r\n')
+		self.ReportLog.write(data['report']+'\r\n')
 
 	def execute(self):
 		self.logFile.write( "Catch "+self.date+" from soure = "+self.soure+" of chinatimes"+'\r\n')
@@ -286,7 +307,7 @@ class ltnSpider:
 
 				for page in range(1, numPage+1):
 					try:
-						r = requests.get(URL['ltn']['soure']['newspaper']+mType+'/'+str(self.date)+'?page='+str(page))
+						r = requests.get(URL['ltn']['soure']['newspaper']+mType+'/'+str(self.date)+'?page='+str(page), proxies=proxy)
 					except requests.exceptions.ConnectionError:
 						self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 						self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 第 "+page+u" 頁清單"+'\r\n')
@@ -310,7 +331,7 @@ class ltnSpider:
 
 				for page in range(1, numPage+1):
 					try:
-						r = requests.get(URL['ltn']['soure']['realtime']+mType+'?page='+str(page))
+						r = requests.get(URL['ltn']['soure']['realtime']+mType+'?page='+str(page), proxies=proxy)
 					except requests.exceptions.ConnectionError:
 						self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 						self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 第 "+page+u" 頁清單"+'\r\n')
@@ -326,7 +347,7 @@ class ltnSpider:
 		if self.soure == "newspaper":
 			
 			try:
-				r = requests.get(URL['ltn']['soure']['newspaper']+mType+'/'+str(self.date))
+				r = requests.get(URL['ltn']['soure']['newspaper']+mType+'/'+str(self.date), proxies=proxy)
 			except requests.exceptions.ConnectionError:
 				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 				self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 之清單"+'\r\n')
@@ -346,7 +367,7 @@ class ltnSpider:
 		if self.soure == "realtime":
 
 			try:
-				r = requests.get(URL['ltn']['soure']['realtime']+mType)
+				r = requests.get(URL['ltn']['soure']['realtime']+mType, proxies=proxy)
 			except requests.exceptions.ConnectionError:
 				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 				self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 之清單"+'\r\n')
@@ -371,7 +392,7 @@ class ltnSpider:
 		lastData = {}
 		for news in self.newsList:
 			try:
-				r = requests.get(URL['ltn']['root']+news)
+				r = requests.get(URL['ltn']['root']+news, proxies=proxy)
 			except requests.exceptions.ConnectionError:
 				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 				self.logFile.write( "\tSkip "+URL['ltn']['root']+news+'\r\n')
@@ -516,16 +537,16 @@ class ltnSpider:
 		"""	
 		#f = open(self.directory+'/'+data['type']+'/'+data['date']+'_'+str(count)+'.txt', 'w')
 		date = re.findall('([0-9]+)', data['date'], re.S)
-		f = codecs.open(self.directory+'/'+date[0]+'-'+date[1]+'-'+date[2]+'_'+str(self.count)+'.txt', 'w', 
+		f = codecs.open(self.directory+'/'+date[0]+date[1]+date[2]+'_'+str(self.count)+'.txt', 'w', 
 			'utf-8')
 		f.write(u'\ufeff')
-		fXml = codecs.open(self.directory+'/'+date[0]+'-'+date[1]+'-'+date[2]+'_'+str(self.count)+'.xml', 'w', 'utf-8')
+		fXml = codecs.open(self.directory+'/'+date[0]+date[1]+date[2]+'_'+str(self.count)+'.xml', 'w', 'utf-8')
 		fXml.write(u'\ufeff')
 		f.write('Title:'+data['title']+'\r\n')
 		f.write(u'Date:'+data['date']+'\r\n')
 		f.write('Time:'+data['time']+'\r\n')
-		f.write('Type:'+data['type']+'\r\n')
-		f.write(u'Aouthor:'+data['author'].decode('utf-8')+'\r\n')
+		f.write('Category:'+data['type']+'\r\n')
+		f.write(u'Author:'+data['author'].decode('utf-8')+'\r\n')
 		f.write('Content:'+data['newsText']+'\r\n')
 		f.close()
 
