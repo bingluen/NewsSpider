@@ -196,6 +196,10 @@ class chinatimesSpider:
 				self.logFile.write( "Error: can't parse the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
 
+			except IndexError:
+				self.logFile.write( "Error: can't parse the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
 			self.__writeToFile(parseResult, self.newsList.index(news))
 
 	def __writeToFile(self, data, count):
@@ -244,7 +248,7 @@ class chinatimesSpider:
 		fXml.close()
 
 		#listLog
-		self.logListFile.write(self.directory+'/'+data['date'][0:4]+'-'+data['date'][5:7]+'-'+data['date'][8:10]+'_'+str(count)+'.xml'+','+str(count)+','+data['title']+','+data['date']+','+data['type']+','+data['report']+'\r\n')
+		self.logListFile.write(self.directory+'/'+data['date']+'_'+str(count)+'.xml'+','+str(count)+','+data['title']+','+data['date']+','+data['type']+','+data['report']+'\r\n')
 		self.ReportLog.write(data['report']+'\r\n')
 
 	def execute(self):
