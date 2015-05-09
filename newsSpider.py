@@ -49,9 +49,10 @@ URL = {
 	}
 }
 
+
 proxy = {
-	"http": "http://proxy3.yzu.edu.tw:8080",
-	"https": "https://proxy3.yzu.edu.tw:8080"
+	"http": "http://proxy.hinet.net:80",
+	"https": "https://proxy.hinet.net:80"
 }
 
 ###Chinatimes news Spider###
@@ -116,9 +117,8 @@ class chinatimesSpider:
 			try:
 				r = requests.get(URL['chinatimes']['list']+str(self.date)+'-'+URL['chinatimes']['soure'][self.soure]+'?page='+str(page), proxies=proxy)
 			except requests.exceptions.ConnectionError:
-				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。")
-				self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+" 第 "+page+" 頁清單")
-				raise ListGetError( u"Error: 無法取得 "+str(self.date)+self.soure+" 第 "+page+" 頁清單" + "\n\tSkip "+str(self.date)+' '+self.soure+' page ' +page)
+				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
+				self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+" 第 "+page+" 頁清單"+'\r\n')
 				continue
 
 			DOM = BeautifulSoup(r.text, 'html.parser')
@@ -130,9 +130,8 @@ class chinatimesSpider:
 		try:
 			r = requests.get(URL['chinatimes']['list']+str(self.date)+'-'+URL['chinatimes']['soure'][self.soure], proxies=proxy)
 		except requests.exceptions.ConnectionError:
-			#self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。")
-			#self.logFile.write( )
-			raise ListGetError("Error: can't connect"+u"\nError: 無法取得 "+str(self.date)+self.soure+" 之清單")
+			self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
+			self.logFile.write("Error: can't connect"+u"\nError: 無法取得 "+str(self.date)+self.soure+" 之清單")
 
 		DOM = BeautifulSoup(r.text, 'html.parser')
 
@@ -140,9 +139,9 @@ class chinatimesSpider:
 			pag = DOM.find('div', class_='pagination').find_all('li')
 			numPage = int(re.findall('page=([0-9]+)', pag[len(pag) - 1].a['href'], re.S)[0])
 		except TypeError:
-			self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+" 之清單列表")
-			self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure)
-			raise ListGetError("Error: can't get list"+"\tSkip "+str(self.date)+' '+self.soure)
+			self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+" 之清單列表"+'\r\n')
+			self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure+'\r\n')
+			self.logFile.write("Error: can't get list"+"\tSkip "+str(self.date)+' '+self.soure)
 
 		return numPage
 
@@ -151,8 +150,8 @@ class chinatimesSpider:
 			try:
 				r = requests.get(URL['chinatimes']['root']+news, proxies=proxy)
 			except requests.exceptions.ConnectionError:
-				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。")
-				self.logFile.write( "\tSkip "+URL['chinatimes']['root']+news)
+				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
+				self.logFile.write( "\tSkip "+URL['chinatimes']['root']+news+'\r\n')
 				raise requests.exceptions.ConnectionError(u"Error: 連線失敗，請檢查網路連線狀態。"+"\n\tSkip "+URL['chinatimes']['root']+news)
 			DOM = BeautifulSoup(r.text, 'html.parser')
 
@@ -187,11 +186,16 @@ class chinatimesSpider:
 				parseResult['type'] = re.findall('[^ \t\r\n]+', pag[len(pag) - 1].text, re.S)[0]
 
 				#Get click
-				parseResult['click'] = DOM.find('div', class_='art_click').find('span', class_='num').text
+				click = DOM.find('div', class_='art_click').find('span', class_='num')
+				parseResult['click'] = click.text if click is not None else 'None'
 
 			except TypeError:
-				raise ParseError( "Error: can't parse the news - "+URL['chinatimes']['root']+news)
+				self.logFile.write( "Error: can't parse the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
+			except AttributeError:
+				self.logFile.write( "Error: can't parse the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
 			self.__writeToFile(parseResult, self.newsList.index(news))
 
 	def __writeToFile(self, data, count):
@@ -261,10 +265,13 @@ class ltnSpider:
 		self.logListFile = codecs.open("ltn-NewsSpider-log-list-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
 		self.logFile.write(u'\ufeff')
 		self.logListFile.write(u'\ufeff')
+		self.ReportLog = codecs.open("[Research&Development]ltn-NewsSpider-ReportLog-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
+		self.ReportLog.write(u'\ufeff')
 
 	def __del__(self):
 		self.logFile.close()
 		self.logListFile.close()
+		self.ReportLog.close()
 
 	def setDate(self, date):
 		### format of date is yyyy-mm-dd
@@ -401,6 +408,8 @@ class ltnSpider:
 
 			parseResult = {}
 
+			parseResult['url'] = URL['ltn']['root']+news
+
 			if len(re.findall('opinion', news, re.S)) > 0:
 
 				##言論的page跟人加不一樣(；´Д｀)
@@ -410,10 +419,9 @@ class ltnSpider:
 
 					#Get title
 					parseResult['title'] = content.h1.text
-
 					#Get date
-					##parseResult['date'] = re.sub('[\r\n\t]', '', content.find('div', class_='writer').text)
-					parseResult['date'] = re.findall('[0-9]{4}-[0-9]{2}-[0-9]{2}', content.find('div', class_='writer').text, re.S)[0]
+					date = re.findall('([0-9]{4})-([0-9]{2})-([0-9]{2})', content.find('div', class_='writer').text, re.S)[0]
+					parseResult['date'] = date[0]+date[1]+date[2]
 					#Get Time
 					if len(re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='writer').text, re.S)) > 0:
 						parseResult['time'] = re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='writer').text, re.S)[0]
@@ -421,7 +429,10 @@ class ltnSpider:
 						parseResult['time'] = 'NULL'
 					
 					#GEt Aouthor
-					parseResult['author'] = 'NULL';
+					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\ns]+)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
+						if len(author) > 0:
+							parseResult['author'] = author
+							break
 
 					#Get newsText
 					parseResult['newsText'] = ''
@@ -432,7 +443,19 @@ class ltnSpider:
 					parseResult['type'] = u'言論'
 
 				except TypeError:
-					self.logFile.write( "Error: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					self.logFile.write( "TypeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
 			elif len(re.findall('entertainment', news, re.S)) > 0:
@@ -444,7 +467,8 @@ class ltnSpider:
 					parseResult['title'] = content.find('div', class_='Btitle').text
 
 					#Get date
-					parseResult['date'] = re.findall('[0-9]{4}\/[0-9]{2}\/[0-9]{2}', content.find('div', class_='date').text, re.S)[0]
+					date = re.findall('([0-9]{4})\/([0-9]{2})\/([0-9]{2})', content.find('div', class_='date').text, re.S)[0]
+					parseResult['date'] = date[0]+date[1]+date[2]
 
 
 					#Get time
@@ -459,13 +483,28 @@ class ltnSpider:
 						parseResult['newsText'] = parseResult['newsText'] + text.text
 
 					#get report
-					parseResult['author'] =  re.findall('〔(.+)〕', parseResult['newsText'].encode('utf-8'), re.S)[0]
+					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\ns]+)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
+						if len(author) > 0:
+							parseResult['author'] = author
+							break
 
 					#Get type
 					parseResult['type'] = u'娛樂'
 
 				except TypeError:
-					self.logFile.write( "Error: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					self.logFile.write( "TypeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
 			else:
@@ -475,8 +514,11 @@ class ltnSpider:
 					#Get title
 					parseResult['title'] = DOM.find('div', class_='content').h1.text
 
+					
+
 					#Get date
-					parseResult['date'] = re.findall('[0-9]{4}[-][0-9]{2}[-][0-9]{2}', DOM.find('div', id='newstext').span.text, re.S)[0]
+					date = re.findall('([0-9]{4})[-]([0-9]{2})[-]([0-9]{2})', DOM.find('div', id='newstext').span.text, re.S)[0]
+					parseResult['date'] = date[0]+date[1]+date[2]
 
 					
 					#Get time
@@ -491,8 +533,10 @@ class ltnSpider:
 						parseResult['newsText'] = parseResult['newsText'] + text.text
 
 					#get report
-					parseResult['author'] = re.findall('〔(.+)〕', parseResult['newsText'].encode('utf-8'), re.S)[0]
-
+					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\n]+)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
+						if len(author) > 0:
+							parseResult['author'] = author
+							break
 					
 
 					#Get type 
@@ -506,9 +550,17 @@ class ltnSpider:
 					self.logFile.write( "TypeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
-					#continue
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
 
 			if self.soure == 'realtime':
 				if len(lastData) == 0:
@@ -516,7 +568,7 @@ class ltnSpider:
 			self.__writeToFile(parseResult)
 
 		if self.soure == 'realtime':
-				self.logFile.write( 'the last news is in ', lastData['date'])
+			self.logFile.write( 'the last news is in ', lastData['date'])
 
 	def __writeToFile(self, data):
 		"""
@@ -536,12 +588,13 @@ class ltnSpider:
 				raise OSError("Can't create folder, please check permission")
 		"""	
 		#f = open(self.directory+'/'+data['type']+'/'+data['date']+'_'+str(count)+'.txt', 'w')
-		date = re.findall('([0-9]+)', data['date'], re.S)
-		f = codecs.open(self.directory+'/'+date[0]+date[1]+date[2]+'_'+str(self.count)+'.txt', 'w', 
+		f = codecs.open(self.directory+'/'+data['date']+'_'+str(self.count)+'.txt', 'w', 
 			'utf-8')
 		f.write(u'\ufeff')
-		fXml = codecs.open(self.directory+'/'+date[0]+date[1]+date[2]+'_'+str(self.count)+'.xml', 'w', 'utf-8')
+		fXml = codecs.open(self.directory+'/'+data['date']+'_'+str(self.count)+'.xml', 'w', 'utf-8')
 		fXml.write(u'\ufeff')
+
+		f.write('Url:'+data['url']+'\r\n')
 		f.write('Title:'+data['title']+'\r\n')
 		f.write(u'Date:'+data['date']+'\r\n')
 		f.write('Time:'+data['time']+'\r\n')
@@ -551,17 +604,19 @@ class ltnSpider:
 		f.close()
 
 		## XML output
+		fXml.write('<Article>+\r\n')
 		fXml.write('<ID>'+str(self.count)+'</ID>\r\n')
 		fXml.write('<Category>'+data['type']+'</Category>\r\n')
 		fXml.write('<Date>'+data['date']+'</Date>\r\n')
 		fXml.write('<Time>'+data['time']+'</Time>\r\n')
 		fXml.write('<Title>'+data['title']+'</Title>\r\n')
-		fXml.write(u'<Author1>'+data['author'].decode('utf-8')+'</Author1>\r\n')
+		fXml.write(u'<Author>'+data['author'].decode('utf-8')+'</Author>\r\n')
 		fXml.write('<Content>'+data['newsText']+'</Content>\r\n')
+		fXml.write('</Article>')
 		fXml.close()
 
-		self.logListFile.write(self.directory+'/'+date[0]+'-'+date[1]+'-'+date[2]+'_'+str(self.count)+'.xml'+','+str(self.count)+','+data['title']+','+data['time']+','+data['type']+'\r\n')
-
+		self.logListFile.write(self.directory+'/'+data['date']+'_'+str(self.count)+'.xml'+','+str(self.count)+','+data['title']+','+data['date']+','+data['type']+','+data['author'].decode('utf-8')+'\r\n')
+		self.ReportLog.write(data['author'].decode('utf-8')+'\r\n')
 		self.count = self.count + 1
 
 	def execute(self):
