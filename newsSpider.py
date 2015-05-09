@@ -72,7 +72,7 @@ class chinatimesSpider:
 
 	def __del__(self):
 		self.logFile.close()
-		self.logListFile.colse()
+		self.logListFile.close()
 		self.ReportLog.close()
 
 	def setDate(self, date):
@@ -164,40 +164,105 @@ class chinatimesSpider:
 				#print(DOM.article.header.h1.string)
 				parseResult['title'] = re.findall('([^ \n\t\r][^\n\t\r]+)', DOM.article.header.h1.string, re.S)[0]
 				#parseResult['title'] = DOM.article.header.h1.string
+			except TypeError:
+				self.logFile.write( "Error: can't parse title of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+			except AttributeError:
+				self.logFile.write( "Error: can't parse title of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
 
+			except IndexError:
+				self.logFile.write( "Error: can't parse title of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
+			try:
 				#Get date
 				dateInfo = re.findall('([0-9]{4})\/([0-9]{2})\/([0-9]{2})', DOM.time['datetime'], re.S)[0]
 				parseResult['date'] = dateInfo[0]+dateInfo[1]+dateInfo[2]
+			except TypeError:
+				self.logFile.write( "Error: can't parse date of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+			except AttributeError:
+				self.logFile.write( "Error: can't parse date of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
 
+			except IndexError:
+				self.logFile.write( "Error: can't parse date of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
+			try:
 				#Get time
 				parseResult['time'] = re.findall('([0-9]{2}:[0-9]{2})', DOM.time.text, re.S)[0]
+			except TypeError:
+				self.logFile.write( "Error: can't parse time of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+			except AttributeError:
+				self.logFile.write( "Error: can't parse time of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
 
+			except IndexError:
+				self.logFile.write( "Error: can't parse time of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
+			try:
 				#Get newsText
 				parseResult['newsText'] = ''
 				for text in DOM.article.article.find_all('p'):
 					parseResult['newsText'] = parseResult['newsText'] + text.text
-
-				#Get report
-				report = DOM.find('div', class_='reporter').find('div', class_='rp_name')
-				parseResult['report'] = report.text if report is not None else 'None'
-
-				#Get type
-				pag = DOM.article.ul.find_all('li')
-				parseResult['type'] = re.findall('[^ \t\r\n]+', pag[len(pag) - 1].text, re.S)[0]
-
-				#Get click
-				click = DOM.find('div', class_='art_click').find('span', class_='num')
-				parseResult['click'] = click.text if click is not None else 'None'
-
 			except TypeError:
-				self.logFile.write( "Error: can't parse the news - "+URL['chinatimes']['root']+news + '\r\n')
+				self.logFile.write( "Error: can't parse newsText of the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
 			except AttributeError:
-				self.logFile.write( "Error: can't parse the news - "+URL['chinatimes']['root']+news + '\r\n')
+				self.logFile.write( "Error: can't parse newsText of the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
 
 			except IndexError:
-				self.logFile.write( "Error: can't parse the news - "+URL['chinatimes']['root']+news + '\r\n')
+				self.logFile.write( "Error: can't parse newsText of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
+			try:
+				#Get report
+				report = DOM.find('div', class_='reporter').find('div', class_='rp_name')
+				parseResult['report'] = report.text if report is not None else 'None'
+			except TypeError:
+				self.logFile.write( "Error: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+			except AttributeError:
+				self.logFile.write( "Error: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
+			except IndexError:
+				self.logFile.write( "Error: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
+			try:
+				#Get type
+				pag = DOM.article.ul.find_all('li')
+				parseResult['type'] = re.findall('[^ \t\r\n]+', pag[len(pag) - 1].text, re.S)[0]
+			except TypeError:
+				self.logFile.write( "Error: can't parse type of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+			except AttributeError:
+				self.logFile.write( "Error: can't parse type of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
+			except IndexError:
+				self.logFile.write( "Error: can't parse type of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
+			try:
+				#Get click
+				click = DOM.find('div', class_='art_click').find('span', class_='num')
+				parseResult['click'] = click.text if click is not None else 'None'
+			except TypeError:
+				self.logFile.write( "Error: can't parse click number of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+			except AttributeError:
+				self.logFile.write( "Error: can't parse click number of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				continue
+
+			except IndexError:
+				self.logFile.write( "Error: can't parse click number of the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
 
 			self.__writeToFile(parseResult, self.newsList.index(news))
@@ -266,7 +331,7 @@ class ltnSpider:
 		self.directory = ''
 		self.count = 0
 		self.logFile = codecs.open("ltn-NewsSpider-log-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
-		self.logListFile = codecs.open("ltn-NewsSpider-log-list-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
+		self.logListFile = codecs.open("ltn-NewsSpider-log-list-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".csv", "w", "utf-8")
 		self.logFile.write(u'\ufeff')
 		self.logListFile.write(u'\ufeff')
 		self.ReportLog = codecs.open("[Research&Development]ltn-NewsSpider-ReportLog-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
@@ -420,81 +485,135 @@ class ltnSpider:
 				
 				try:
 					content = DOM.find('div', class_='content').find('div', class_='conbox')
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
 
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				try:
 					#Get title
 					parseResult['title'] = content.h1.text
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+				
+				try:
 					#Get date
 					date = re.findall('([0-9]{4})-([0-9]{2})-([0-9]{2})', content.find('div', class_='writer').text, re.S)[0]
 					parseResult['date'] = date[0]+date[1]+date[2]
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+				
+				try:
 					#Get Time
 					if len(re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='writer').text, re.S)) > 0:
 						parseResult['time'] = re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='writer').text, re.S)[0]
 					else:
 						parseResult['time'] = 'NULL'
-					
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+				
+				try:
 					#GEt Aouthor
-					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\ns]+)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
+					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\ns]+)|記者(.+)／', parseResult['newsText'].encode('utf-8'), re.S)[0]:
 						if len(author) > 0:
 							parseResult['author'] = author
 							break
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
 
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				try:
 					#Get newsText
 					parseResult['newsText'] = ''
 					for text in content.find('div', class_='cont').find_all('p'):
 						parseResult['newsText'] = parseResult['newsText'] + text.text
-
-					#Get type
-					parseResult['type'] = u'言論'
-
 				except TypeError:
-					self.logFile.write( "TypeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					self.logFile.write( "TypeError: can't parse news Text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
 				except IndexError:
-					self.logFile.write( "IndexError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					self.logFile.write( "IndexError: can't parse news Text of  the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
 				except AttributeError:
-					self.logFile.write( "AttributeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					self.logFile.write( "AttributeError: can't parse news Text of  the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
 				except KeyError:
-					self.logFile.write( "KeyError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
+					self.logFile.write( "KeyError: can't parse news Text of  the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
+
+				#Get type
+				parseResult['type'] = u'言論'
+
+				
 
 			elif len(re.findall('entertainment', news, re.S)) > 0:
 				##娛樂的page跟人加不一樣(；´Д｀)
 				try:
 					content = DOM.find('div', class_='news_content')
-
-					#Get title
-					parseResult['title'] = content.find('div', class_='Btitle').text
-
-					#Get date
-					date = re.findall('([0-9]{4})\/([0-9]{2})\/([0-9]{2})', content.find('div', class_='date').text, re.S)[0]
-					parseResult['date'] = date[0]+date[1]+date[2]
-
-
-					#Get time
-					if len(re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='date').text, re.S)) > 0:
-						parseResult['time'] = re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='date').text, re.S)[0]
-					else:
-						parseResult['time'] = 'NULL'
-
-					#Get newsText
-					parseResult['newsText'] = ''
-					for text in content.find_all('p'):
-						parseResult['newsText'] = parseResult['newsText'] + text.text
-
-					#get report
-					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\ns]+)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
-						if len(author) > 0:
-							parseResult['author'] = author
-							break
-
-					#Get type
-					parseResult['type'] = u'娛樂'
-
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -510,6 +629,116 @@ class ltnSpider:
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
+
+				try:
+					#Get title
+					parseResult['title'] = content.find('div', class_='Btitle').text
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				try:
+					#Get date
+					date = re.findall('([0-9]{4})\/([0-9]{2})\/([0-9]{2})', content.find('div', class_='date').text, re.S)[0]
+					parseResult['date'] = date[0]+date[1]+date[2]
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+
+				try:
+					#Get time
+					if len(re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='date').text, re.S)) > 0:
+						parseResult['time'] = re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='date').text, re.S)[0]
+					else:
+						parseResult['time'] = 'NULL'
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				try:
+					#Get newsText
+					parseResult['newsText'] = ''
+					for text in content.find_all('p'):
+						parseResult['newsText'] = parseResult['newsText'] + text.text
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				try:
+					#get report
+					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\ns]+|記者(.+)／)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
+						if len(author) > 0:
+							parseResult['author'] = author
+							break
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				#Get type
+				parseResult['type'] = u'娛樂'
+
+
 
 			else:
 
@@ -517,32 +746,109 @@ class ltnSpider:
 
 					#Get title
 					parseResult['title'] = DOM.find('div', class_='content').h1.text
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
 
 					
-
+				try: 
 					#Get date
 					date = re.findall('([0-9]{4})[-]([0-9]{2})[-]([0-9]{2})', DOM.find('div', id='newstext').span.text, re.S)[0]
 					parseResult['date'] = date[0]+date[1]+date[2]
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
 
-					
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				try: 					
 					#Get time
 					if len(re.findall('[0-9]{2}:[0-9]{2}', DOM.find('div', id='newstext').span.text, re.S)) > 0:
 						parseResult['time'] = re.findall('[0-9]{2}:[0-9]{2}', DOM.find('div', id='newstext').span.text, re.S)[0]
 					else:
 						parseResult['time'] = 'NULL'
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
 
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				try: 
 					#Get newsText
 					parseResult['newsText'] = ''
 					for text in DOM.find('div', id='newstext').find_all('p'):
 						parseResult['newsText'] = parseResult['newsText'] + text.text
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
 
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				try: 
 					#get report
-					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\n]+)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
+					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\n]+|記者(.+)／)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
 						if len(author) > 0:
 							parseResult['author'] = author
 							break
-					
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
 
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+					
+				try: 
 					#Get type 
 					if len(re.findall('local', news, re.S)) > 0:
 						parseResult['type'] = u'地方新聞'
@@ -550,21 +856,6 @@ class ltnSpider:
 						pag = DOM.find('div', class_='guide').find_all('a')
 						parseResult['type'] = pag[len(pag)-1].text
 
-				except TypeError:
-					self.logFile.write( "TypeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-
-				except IndexError:
-					self.logFile.write( "IndexError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-
-				except AttributeError:
-					self.logFile.write( "AttributeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-
-				except KeyError:
-					self.logFile.write( "KeyError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
 
 			if self.soure == 'realtime':
 				if len(lastData) == 0:
