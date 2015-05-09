@@ -166,8 +166,8 @@ class chinatimesSpider:
 				#parseResult['title'] = DOM.article.header.h1.string
 
 				#Get date
-				dataInfo = re.findall('([0-9]{4})\/([0-9]{2})\/([0-9]{2})', DOM.time['datetime'], re.S)[0]
-				parseResult['date'] = dataInfo[0]+dataInfo[1]+dataInfo[2]
+				dateInfo = re.findall('([0-9]{4})\/([0-9]{2})\/([0-9]{2})', DOM.time['datetime'], re.S)[0]
+				parseResult['date'] = dateInfo[0]+dateInfo[1]+dateInfo[2]
 
 				#Get time
 				parseResult['time'] = re.findall('([0-9]{2}:[0-9]{2})', DOM.time.text, re.S)[0]
