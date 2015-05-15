@@ -70,6 +70,12 @@ class chinatimesSpider:
 		self.ReportLog = codecs.open("[Research&Development]chinatimes-NewsSpider-ReportLog-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
 		self.ReportLog.write(u'\ufeff')
 
+		if not os.path.exists('chinatimes/'):
+			try:
+				os.mkdir('chinatimes/')
+			except OSError:
+				raise OSError("Can't create folder, please check permission")
+
 	def __del__(self):
 		self.logFile.close()
 		self.logListFile.close()
@@ -96,12 +102,12 @@ class chinatimesSpider:
 		self.soure = soure
 
 	def setDir(self, mDir):
-		if not os.path.exists(mDir):
+		if not os.path.exists('chinatimes/'+mDir):
 			try:
-				os.mkdir(mDir)
+				os.mkdir('chinatimes/'+mDir)
 			except OSError:
 				raise OSError("Can't create folder, please check permission")
-		self.directory = mDir
+		self.directory = 'chinatimes/'+mDir
 
 	def __getList(self):
 		### get number of page of list
@@ -223,7 +229,8 @@ class chinatimesSpider:
 			try:
 				#Get report
 				report = DOM.find('div', class_='reporter').find('div', class_='rp_name')
-				parseResult['report'] = report.text if report is not None else 'None'
+				parseResult['report'] = report.text if report is not None else ''
+				parseResult['report'] = parseResult['report'].split(u'、')
 			except TypeError:
 				self.logFile.write( "Error: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
@@ -294,7 +301,10 @@ class chinatimesSpider:
 		f.write('Date:'+data['date']+'\r\n')
 		f.write(u'ClickNo:'+data['click']+'\r\n')
 		f.write(u'Category:'+data['type']+'\r\n')
-		f.write(u'Author:'+data['report']+'\r\n')
+		f.write(u'Author:')
+		for report in data['report']:
+			f.write(report+' ')
+		f.write('\r\n')
 		f.write(u'Content:'+data['newsText']+'\r\n')
 		f.close()
 
@@ -306,15 +316,22 @@ class chinatimesSpider:
 		fXml.write('<Time>'+data['time']+'</Time>\r\n')
 		fXml.write('<Date>'+data['date']+'</Date>\r\n')
 		fXml.write(u'<ClickNo>'+data['click']+'</ClickNo>\r\n')
-		fXml.write(u'<Author1>'+data['report']+'</Author1>\r\n')
+		fXml.write('<Authors>\r\n')
+		for report in data['report']:
+			fXml.write(u'<Author>'+report+'</Author>\r\n')
+		fXml.write('</Authors>\r\n')
 		fXml.write(u'<Title>'+data['title']+'</Title>\r\n')
 		fXml.write(u'<Content>'+data['newsText']+'</Content>\r\n')
 		fXml.write('</Article>')
 		fXml.close()
 
 		#listLog
-		self.logListFile.write(self.directory+'/'+data['date']+'_'+str(count)+'.xml'+','+str(count)+','+data['title']+','+data['date']+','+data['type']+','+data['report']+'\r\n')
-		self.ReportLog.write(data['report']+'\r\n')
+		self.logListFile.write(self.directory+'/'+data['date']+'_'+str(count)+'.xml'+','+str(count)+','+data['title']+','+data['date']+','+data['type']+',')
+		for report in data['report']:
+			self.logListFile.write(report+' ')
+			self.ReportLog.write(report+' ')
+		self.logListFile.write('\r\n')
+		self.ReportLog.write('\r\n')
 
 	def execute(self):
 		self.logFile.write( "Catch "+self.date+" from soure = "+self.soure+" of chinatimes"+'\r\n')
@@ -337,6 +354,12 @@ class ltnSpider:
 		self.ReportLog = codecs.open("[Research&Development]ltn-NewsSpider-ReportLog-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
 		self.ReportLog.write(u'\ufeff')
 
+		if not os.path.exists('ltn'):
+			try:
+				os.mkdir('ltn')
+			except OSError:
+				raise OSError("Can't create folder, please check permission")
+
 	def __del__(self):
 		self.logFile.close()
 		self.logListFile.close()
@@ -353,22 +376,23 @@ class ltnSpider:
 			raise ValueError("Incorrect date, is is bigger than now")
 
 		self.date = date[0:4]+date[5:7]+date[8:10]
+		self.count = 0
 
 	def setSoure(self, soure):
 		try:
 			URL['ltn']['soure'][soure]
 		except KeyError:
 			raise KeyError("Incorrect news soure (only newspaper /  realtime)")
-
+		self.count = 0
 		self.soure = soure
 
 	def setDir(self, mDir):
-		if not os.path.exists(mDir):
+		if not os.path.exists('ltn/'+mDir):
 			try:
-				os.mkdir(mDir)
+				os.mkdir('ltn/'+mDir)
 			except OSError:
 				raise OSError("Can't create folder, please check permission")
-		self.directory = mDir
+		self.directory = 'ltn/'+mDir
 
 	def __getList(self):
 		if self.soure == "newspaper":
@@ -410,8 +434,8 @@ class ltnSpider:
 						r = requests.get(URL['ltn']['soure']['realtime']+mType+'?page='+str(page), proxies=proxy)
 					except requests.exceptions.ConnectionError:
 						self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
-						self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 第 "+page+u" 頁清單"+'\r\n')
-						self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure+' page ' +page+'\r\n')
+						self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 第 "+str(page)+u" 頁清單"+'\r\n')
+						self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure+' page ' +str(page)+'\r\n')
 						continue
 
 					DOM = BeautifulSoup(r.text, 'html.parser')
@@ -488,15 +512,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -507,15 +528,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -527,15 +545,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -545,19 +560,16 @@ class ltnSpider:
 					if len(re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='writer').text, re.S)) > 0:
 						parseResult['time'] = re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='writer').text, re.S)[0]
 					else:
-						parseResult['time'] = 'NULL'
+						parseResult['time'] = ''
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -571,15 +583,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -592,23 +601,18 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse news Text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse news Text of  the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse news Text of  the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse news Text of  the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
 				#Get type
 				parseResult['type'] = u'言論'
-
-				
 
 			elif len(re.findall('entertainment', news, re.S)) > 0:
 				##娛樂的page跟人加不一樣(；´Д｀)
@@ -617,15 +621,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -636,15 +637,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -656,38 +654,31 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 
 				try:
 					#Get time
 					if len(re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='date').text, re.S)) > 0:
 						parseResult['time'] = re.findall('[0-9]{2}:[0-9]{2}', content.find('div', class_='date').text, re.S)[0]
 					else:
-						parseResult['time'] = 'NULL'
+						parseResult['time'] = ''
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -700,15 +691,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -722,15 +710,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -738,26 +723,19 @@ class ltnSpider:
 				#Get type
 				parseResult['type'] = u'娛樂'
 
-
-
 			else:
-
 				try: 	
-
 					#Get title
 					parseResult['title'] = DOM.find('div', class_='content').h1.text
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse title of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -770,15 +748,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse date of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -788,19 +763,16 @@ class ltnSpider:
 					if len(re.findall('[0-9]{2}:[0-9]{2}', DOM.find('div', id='newstext').span.text, re.S)) > 0:
 						parseResult['time'] = re.findall('[0-9]{2}:[0-9]{2}', DOM.find('div', id='newstext').span.text, re.S)[0]
 					else:
-						parseResult['time'] = 'NULL'
+						parseResult['time'] = ' '
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse time of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -813,15 +785,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -835,15 +804,12 @@ class ltnSpider:
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except IndexError:
 					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except AttributeError:
 					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
-
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -855,15 +821,25 @@ class ltnSpider:
 					else:
 						pag = DOM.find('div', class_='guide').find_all('a')
 						parseResult['type'] = pag[len(pag)-1].text
-
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse type of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse type of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse type of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse type of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
 
 			if self.soure == 'realtime':
 				if len(lastData) == 0:
 					lastData = parseResult
+					self.logFile.write( 'the last news is in ' + lastData['date'])
 			self.__writeToFile(parseResult)
-
-		if self.soure == 'realtime':
-			self.logFile.write( 'the last news is in ', lastData['date'])
+				
 
 	def __writeToFile(self, data):
 		"""
@@ -889,23 +865,29 @@ class ltnSpider:
 		fXml = codecs.open(self.directory+'/'+data['date']+'_'+str(self.count)+'.xml', 'w', 'utf-8')
 		fXml.write(u'\ufeff')
 
+		#過濾「記者」
+		data['author'] = data['author'].decode('utf-8').replace(u'\u8A18\u8005', '')
+
 		f.write('Url:'+data['url']+'\r\n')
 		f.write('Title:'+data['title']+'\r\n')
+		f.write('clickNo\r\n')
 		f.write(u'Date:'+data['date']+'\r\n')
 		f.write('Time:'+data['time']+'\r\n')
 		f.write('Category:'+data['type']+'\r\n')
-		f.write(u'Author:'+data['author'].decode('utf-8')+'\r\n')
+		f.write(u'Author:'+data['author']+'\r\n')
 		f.write('Content:'+data['newsText']+'\r\n')
 		f.close()
 
 		## XML output
-		fXml.write('<Article>+\r\n')
+		fXml.write('<Article>\r\n')
+		fXml.write('<Url>'+data['url']+'</url>\r\n')
 		fXml.write('<ID>'+str(self.count)+'</ID>\r\n')
 		fXml.write('<Category>'+data['type']+'</Category>\r\n')
 		fXml.write('<Date>'+data['date']+'</Date>\r\n')
 		fXml.write('<Time>'+data['time']+'</Time>\r\n')
 		fXml.write('<Title>'+data['title']+'</Title>\r\n')
-		fXml.write(u'<Author>'+data['author'].decode('utf-8')+'</Author>\r\n')
+		fXml.write('<clickNo></clickNo>\r\n')
+		fXml.write(u'<Author>'+data['author']+'</Author>\r\n')
 		fXml.write('<Content>'+data['newsText']+'</Content>\r\n')
 		fXml.write('</Article>')
 		fXml.close()
