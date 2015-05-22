@@ -230,6 +230,7 @@ class chinatimesSpider:
 				#Get report
 				report = DOM.find('div', class_='reporter').find('div', class_='rp_name')
 				parseResult['report'] = report.text if report is not None else ''
+				parseResult['report'] = parseResult['report'].replace('')
 				parseResult['report'] = parseResult['report'].split(u'、')
 			except TypeError:
 				self.logFile.write( "Error: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
@@ -870,7 +871,7 @@ class ltnSpider:
 
 		f.write('Url:'+data['url']+'\r\n')
 		f.write('Title:'+data['title']+'\r\n')
-		f.write('clickNo\r\n')
+		f.write('clickNo:\r\n')
 		f.write(u'Date:'+data['date']+'\r\n')
 		f.write('Time:'+data['time']+'\r\n')
 		f.write('Category:'+data['type']+'\r\n')
