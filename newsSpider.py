@@ -576,25 +576,6 @@ class ltnSpider:
 					continue
 				
 				try:
-					#GEt Aouthor
-					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\ns]+)|記者(.+)／', parseResult['newsText'].encode('utf-8'), re.S)[0]:
-						if len(author) > 0:
-							parseResult['author'] = author
-							break
-				except TypeError:
-					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except IndexError:
-					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except AttributeError:
-					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except KeyError:
-					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-
-				try:
 					#Get newsText
 					parseResult['newsText'] = ''
 					for text in content.find('div', class_='cont').find_all('p'):
@@ -611,6 +592,25 @@ class ltnSpider:
 				except KeyError:
 					self.logFile.write( "KeyError: can't parse news Text of  the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
+
+				try:
+					#GEt Aouthor
+					parseResult['author'] = ''
+					author = re.findall('〔(記者)?(.+)／', parseResult['newsText'].encode('utf-8'), re.S)[0][1]
+					parseResult['author'] = author.decode('utf-8')
+				except TypeError:
+					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+				except IndexError:
+					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+				except AttributeError:
+					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+				except KeyError:
+					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
+					continue
+
 
 				#Get type
 				parseResult['type'] = u'言論'
@@ -703,11 +703,9 @@ class ltnSpider:
 					continue
 
 				try:
-					#get report
-					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\ns]+|記者(.+)／)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
-						if len(author) > 0:
-							parseResult['author'] = author
-							break
+					parseResult['author'] = ''
+					author = re.findall('〔(記者)?(.+)／', parseResult['newsText'].encode('utf-8'), re.S)[0][1]
+					parseResult['author'] = author.decode('utf-8')
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -797,11 +795,9 @@ class ltnSpider:
 					continue
 
 				try: 
-					#get report
-					for author in re.findall('〔(.+)〕|（(.+)）|◎([^ \r\n]+|記者(.+)／)', parseResult['newsText'].encode('utf-8'), re.S)[0]:
-						if len(author) > 0:
-							parseResult['author'] = author
-							break
+					parseResult['author'] = ''
+					author = re.findall('〔(記者)?(.+)／', parseResult['newsText'].encode('utf-8'), re.S)[0][1]
+					parseResult['author'] = author.decode('utf-8')
 				except TypeError:
 					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
@@ -867,7 +863,7 @@ class ltnSpider:
 		fXml.write(u'\ufeff')
 
 		#過濾「記者」
-		data['author'] = data['author'].decode('utf-8').replace(u'\u8A18\u8005', '')
+		##data['author'] = data['author'].decode('utf-8').replace(u'\u8A18\u8005', '')
 
 		f.write('Url:'+data['url']+'\r\n')
 		f.write('Title:'+data['title']+'\r\n')
@@ -893,8 +889,8 @@ class ltnSpider:
 		fXml.write('</Article>')
 		fXml.close()
 
-		self.logListFile.write(self.directory+'/'+data['date']+'_'+str(self.count)+'.xml'+','+str(self.count)+','+data['title']+','+data['date']+','+data['type']+','+data['author'].decode('utf-8')+'\r\n')
-		self.ReportLog.write(data['author'].decode('utf-8')+'\r\n')
+		self.logListFile.write(self.directory+'/'+data['date']+'_'+str(self.count)+'.xml'+','+str(self.count)+','+data['title']+','+data['date']+','+data['type']+','+data['author']+'\r\n')
+		self.ReportLog.write(data['author']+'\r\n')
 		self.count = self.count + 1
 
 	def execute(self):
@@ -913,22 +909,6 @@ class ParseError:
 		self.messages = arg
 		
 		
-
-"""
-ct_s = chinatimesSpider()
-ct_s.setDate('2015-05-03')
-ct_s.setSoure('realtime')
-ct_s.setDir('realtime')
-ct_s.execute()
-
-ltn_s = ltnSpider()
-ltn_s.setDate('2015-05-02')
-ltn_s.setSoure('newspaper')
-ltn_s.setDir('ltn')
-ltn_s.execute()
-"""
-
-
 
 if len(sys.argv) > 2 and sys.argv[1] != 'ltn-realtime':
 	startDay = datetime.date(int(sys.argv[2][0:4]), int(sys.argv[2][5:7]), int(sys.argv[2][8:10]))
@@ -955,5 +935,4 @@ if sys.argv[1] == 'ltn':
 			s.setSoure(newstype)
 			s.setDir(newstype)
 			s.execute()
-		s.execute()
 		currentDay += datetime.timedelta(days=1)
