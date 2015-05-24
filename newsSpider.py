@@ -884,7 +884,10 @@ class ltnSpider:
 		fXml.write('<Time>'+data['time']+'</Time>\r\n')
 		fXml.write('<Title>'+data['title']+'</Title>\r\n')
 		fXml.write('<clickNo></clickNo>\r\n')
-		fXml.write(u'<Author>'+data['author']+'</Author>\r\n')
+		fXml.write(u'<Authors>\r\n')
+		for author in data['author'].split(u'、'):
+			fXml.write(u'<Author>'+author+'</Author>\r\n')
+		fXml.write('</Authors>\r\n')
 		fXml.write('<Content>'+data['newsText']+'</Content>\r\n')
 		fXml.write('</Article>')
 		fXml.close()
