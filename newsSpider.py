@@ -354,6 +354,7 @@ class ltnSpider:
 		self.logListFile.write(u'\ufeff')
 		self.ReportLog = codecs.open("[Research&Development]ltn-NewsSpider-ReportLog-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
 		self.ReportLog.write(u'\ufeff')
+		self.realtimeFlag = False
 
 		if not os.path.exists('ltn'):
 			try:
@@ -421,27 +422,30 @@ class ltnSpider:
 
 		if self.soure == "realtime":
 			
-			for mType in URL['ltn']['type']:
-				try:
-					numPage = self.__getNumOfPageOfList(mType)
-				except requests.exceptions.ConnectionError:
-					self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure+'\r\n')
-					return
-				except TypeError:
-					return
+			if self.realtimeFlag == False:
+				self.realtimeFlag = True
 
-				for page in range(1, numPage+1):
+				for mType in URL['ltn']['type']:
 					try:
-						r = requests.get(URL['ltn']['soure']['realtime']+mType+'?page='+str(page), proxies=proxy)
+						numPage = self.__getNumOfPageOfList(mType)
 					except requests.exceptions.ConnectionError:
-						self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
-						self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 第 "+str(page)+u" 頁清單"+'\r\n')
-						self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure+' page ' +str(page)+'\r\n')
-						continue
+						self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure+'\r\n')
+						return
+					except TypeError:
+						return
 
-					DOM = BeautifulSoup(r.text, 'html.parser')
-					for item in DOM.find('ul', id='newslistul').find_all('li'):
-						self.newsList.append(item.a['href'])
+					for page in range(1, numPage+1):
+						try:
+							r = requests.get(URL['ltn']['soure']['realtime']+mType+'?page='+str(page), proxies=proxy)
+						except requests.exceptions.ConnectionError:
+							self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
+							self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 第 "+str(page)+u" 頁清單"+'\r\n')
+							self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure+' page ' +str(page)+'\r\n')
+							continue
+
+						DOM = BeautifulSoup(r.text, 'html.parser')
+						for item in DOM.find('ul', id='newslistul').find_all('li'):
+							self.newsList.append(item.a['href'])
 
 
 	def __getNumOfPageOfList(self, mType):
