@@ -126,10 +126,12 @@ class chinatimesSpider:
 				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 				self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+" 第 "+page+" 頁清單"+'\r\n')
 				continue
-
-			DOM = BeautifulSoup(r.text, 'html.parser')
-			for item in DOM.article.find_all('h2'):
-				self.newsList.append(item.a['href'])
+			try:
+				DOM = BeautifulSoup(r.text, 'html.parser')
+				for item in DOM.article.find_all('h2'):
+					self.newsList.append(item.a['href'])
+			except AttributeError:
+				self.logFile.write(u'AttributeError: 無法抓取清單 page = '+page+u'url = '+URL['chinatimes']['soure'][self.soure]+u'?page='+str(page))
 
 	
 	def __getNumOfPageOfList(self):
@@ -230,17 +232,15 @@ class chinatimesSpider:
 				#Get report
 				report = DOM.find('div', class_='reporter').find('div', class_='rp_name')
 				parseResult['report'] = report.text if report is not None else ''
-				parseResult['report'] = parseResult['report'].replace('')
 				parseResult['report'] = parseResult['report'].split(u'、')
 			except TypeError:
-				self.logFile.write( "Error: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				self.logFile.write( "TypeError: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
 			except AttributeError:
-				self.logFile.write( "Error: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				self.logFile.write( "AttributeError: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
-
 			except IndexError:
-				self.logFile.write( "Error: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
+				self.logFile.write( "IndexError: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
 
 			try:
