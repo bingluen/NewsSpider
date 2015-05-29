@@ -23,18 +23,18 @@ URL = {
 
 		'list' : 'http://www.chinatimes.com/history-by-date/',
 		'soure' : {
-			'chinatimes': '2601',
-			 'ctee': '2602', 
-			 'want': '2603', 
-			 'realtime': '2604'
+			'chinatimes_News': '2601',
+			 'ctee_News': '2602', 
+			 'want_News': '2603', 
+			 'chinatimes_realtimes': '2604'
 		}
 	},
 
 	'ltn' : {
 		'root': 'http://news.ltn.com.tw',
 		'soure': {
-			'newspaper': 'http://news.ltn.com.tw/newspaper/',
-			'realtime' : 'http://news.ltn.com.tw/list/'
+			'ltn_News': 'http://news.ltn.com.tw/newspaper/',
+			'ltn_realtime' : 'http://news.ltn.com.tw/list/'
 		},
 
 		'type': ['politics', 'society', 'local', 'life'
@@ -52,7 +52,7 @@ URL = {
 
 proxy = {
 	"http": "http://proxy.hinet.net:80",
-	"https": "https://proxy.hinet.net:80"
+	"https": "http://proxy.hinet.net:80"
 }
 
 ###Chinatimes news Spider###
@@ -69,12 +69,6 @@ class chinatimesSpider:
 		self.logListFile.write(u'\ufeff')
 		self.ReportLog = codecs.open("[Research&Development]chinatimes-NewsSpider-ReportLog-"+str(datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))+".txt", "w", "utf-8")
 		self.ReportLog.write(u'\ufeff')
-
-		if not os.path.exists('chinatimes/'):
-			try:
-				os.mkdir('chinatimes/')
-			except OSError:
-				raise OSError("Can't create folder, please check permission")
 
 	def __del__(self):
 		self.logFile.close()
@@ -102,12 +96,24 @@ class chinatimesSpider:
 		self.soure = soure
 
 	def setDir(self, mDir):
-		if not os.path.exists('chinatimes/'+mDir):
+		if not os.path.exists(mDir):
 			try:
-				os.mkdir('chinatimes/'+mDir)
+				os.mkdir(mDir)
 			except OSError:
 				raise OSError("Can't create folder, please check permission")
-		self.directory = 'chinatimes/'+mDir
+
+		if not os.path.exists(mDir+'/xml'):
+			try:
+				os.mkdir(mDir+'/xml')
+			except OSError:
+				raise OSError("Can't create folder, please check permission")
+
+		if not os.path.exists(mDir+'/txt'):
+			try:
+				os.mkdir(mDir+'/txt')
+			except OSError:
+				raise OSError("Can't create folder, please check permission")
+		self.directory = mDir
 
 	def __getList(self):
 		### get number of page of list
@@ -229,10 +235,17 @@ class chinatimesSpider:
 				continue
 
 			try:
-				#Get report
+				#Get report & location
+				parseResult['location'] = ''
 				report = DOM.find('div', class_='reporter').find('div', class_='rp_name')
-				parseResult['report'] = report.text if report is not None else ''
-				parseResult['report'] = parseResult['report'].split(u'、')
+				reportText = report.text if report is not None else ''
+				if len(reportText) > 0:
+					##print reportText
+					parseResult['report'] = re.findall(u'(記者)?([^／]*)', reportText, re.S)[0][1].split(u'、')
+					parseResult['location'] = re.findall(u'／(.*)', reportText, re.S)[0] if len(re.findall(u'／(.*)', reportText, re.S)) > 0 else ''
+					##print u'report = ' + str(parseResult['report']) + u' location = ' + parseResult['location']
+				else:
+					parseResult['report'] = reportText
 			except TypeError:
 				self.logFile.write( "TypeError: can't parse author of the news - "+URL['chinatimes']['root']+news + '\r\n')
 				continue
@@ -291,8 +304,8 @@ class chinatimesSpider:
 				raise OSError("Can't create folder, please check permission")
 		"""	
 		#f = open(self.directory+'/'+data['type']+'/'+data['date'][0:4]+'-'+data['date'][5:7]+'-'+data['date'][8:10]+'_'+str(count)+'.txt', 'w')
-		f = codecs.open(self.directory+'/'+data['date']+'_'+str(count)+'.txt', 'w', 'utf-8')
-		fXml = codecs.open(self.directory+'/'+data['date']+'_'+str(count)+'.xml', 'w', 'utf-8')
+		f = codecs.open(self.directory+'/txt/'+data['date']+'_'+str(count)+'.txt', 'w', 'utf-8')
+		fXml = codecs.open(self.directory+'/xml/'+data['date']+'_'+str(count)+'.xml', 'w', 'utf-8')
 		f.write(u'\ufeff')
 		fXml.write(u'\ufeff')
 		
@@ -306,6 +319,7 @@ class chinatimesSpider:
 		for report in data['report']:
 			f.write(report+' ')
 		f.write('\r\n')
+		f.write(u'Location:'+data['location']+'\r\n')
 		f.write(u'Content:'+data['newsText']+'\r\n')
 		f.close()
 
@@ -321,6 +335,7 @@ class chinatimesSpider:
 		for report in data['report']:
 			fXml.write(u'<Author>'+report+'</Author>\r\n')
 		fXml.write('</Authors>\r\n')
+		fXml.write(u'<Location>'+data['location']+u'</Location>\r\n')
 		fXml.write(u'<Title>'+data['title']+'</Title>\r\n')
 		fXml.write(u'<Content>'+data['newsText']+'</Content>\r\n')
 		fXml.write('</Article>')
@@ -356,12 +371,6 @@ class ltnSpider:
 		self.ReportLog.write(u'\ufeff')
 		self.realtimeFlag = False
 
-		if not os.path.exists('ltn'):
-			try:
-				os.mkdir('ltn')
-			except OSError:
-				raise OSError("Can't create folder, please check permission")
-
 	def __del__(self):
 		self.logFile.close()
 		self.logListFile.close()
@@ -389,15 +398,27 @@ class ltnSpider:
 		self.soure = soure
 
 	def setDir(self, mDir):
-		if not os.path.exists('ltn/'+mDir):
+		if not os.path.exists(mDir):
 			try:
-				os.mkdir('ltn/'+mDir)
+				os.mkdir(mDir)
 			except OSError:
 				raise OSError("Can't create folder, please check permission")
-		self.directory = 'ltn/'+mDir
+
+		if not os.path.exists(mDir+'/xml'):
+			try:
+				os.mkdir(mDir+'/xml')
+			except OSError:
+				raise OSError("Can't create folder, please check permission")
+
+		if not os.path.exists(mDir+'/txt'):
+			try:
+				os.mkdir(mDir+'/txt')
+			except OSError:
+				raise OSError("Can't create folder, please check permission")
+		self.directory = mDir
 
 	def __getList(self):
-		if self.soure == "newspaper":
+		if self.soure == "ltn_News":
 			for mType in URL['ltn']['type']:
 				try:
 					numPage = self.__getNumOfPageOfList(mType)
@@ -409,7 +430,8 @@ class ltnSpider:
 
 				for page in range(1, numPage+1):
 					try:
-						r = requests.get(URL['ltn']['soure']['newspaper']+mType+'/'+str(self.date)+'?page='+str(page), proxies=proxy)
+						self.logFile.write('catch'+URL['ltn']['soure']['ltn_News']+mType+'/'+str(self.date)+'?page='+str(page))
+						r = requests.get(URL['ltn']['soure']['ltn_News']+mType+'/'+str(self.date)+'?page='+str(page), proxies=proxy)
 					except requests.exceptions.ConnectionError:
 						self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 						self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 第 "+page+u" 頁清單"+'\r\n')
@@ -420,7 +442,7 @@ class ltnSpider:
 					for item in DOM.find('ul', id='newslistul').find_all('li'):
 						self.newsList.append(item.a['href'])
 
-		if self.soure == "realtime":
+		if self.soure == "ltn_realtime":
 			
 			if self.realtimeFlag == False:
 				self.realtimeFlag = True
@@ -436,7 +458,7 @@ class ltnSpider:
 
 					for page in range(1, numPage+1):
 						try:
-							r = requests.get(URL['ltn']['soure']['realtime']+mType+'?page='+str(page), proxies=proxy)
+							r = requests.get(URL['ltn']['soure']['ltn_realtime']+mType+'?page='+str(page), proxies=proxy)
 						except requests.exceptions.ConnectionError:
 							self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 							self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 第 "+str(page)+u" 頁清單"+'\r\n')
@@ -444,15 +466,17 @@ class ltnSpider:
 							continue
 
 						DOM = BeautifulSoup(r.text, 'html.parser')
-						for item in DOM.find('ul', id='newslistul').find_all('li'):
-							self.newsList.append(item.a['href'])
+						newslist = DOM.find('ul', id='newslistul').find_all('li')
+						if newslist is not None:
+							for item in newslist:
+								self.newsList.append(item.a['href'])
 
 
 	def __getNumOfPageOfList(self, mType):
-		if self.soure == "newspaper":
+		if self.soure == "ltn_News":
 			
 			try:
-				r = requests.get(URL['ltn']['soure']['newspaper']+mType+'/'+str(self.date), proxies=proxy)
+				r = requests.get(URL['ltn']['soure']['ltn_News']+mType+'/'+str(self.date), proxies=proxy)
 			except requests.exceptions.ConnectionError:
 				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 				self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 之清單"+'\r\n')
@@ -469,10 +493,10 @@ class ltnSpider:
 				self.logFile.write( "\tSkip "+str(self.date)+' '+self.soure+'\r\n')
 				raise TypeError("Can't getlist")
 
-		if self.soure == "realtime":
+		if self.soure == "ltn_realtime":
 
 			try:
-				r = requests.get(URL['ltn']['soure']['realtime']+mType, proxies=proxy)
+				r = requests.get(URL['ltn']['soure']['ltn_realtime']+mType, proxies=proxy)
 			except requests.exceptions.ConnectionError:
 				self.logFile.write( u"Error: 連線失敗，請檢查網路連線狀態。"+'\r\n')
 				self.logFile.write( u"Error: 無法取得 "+str(self.date)+self.soure+u" 之清單"+'\r\n')
@@ -597,23 +621,10 @@ class ltnSpider:
 					self.logFile.write( "KeyError: can't parse news Text of  the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
-				try:
-					#GEt Aouthor
-					parseResult['author'] = ''
-					author = re.findall('〔(記者)?(.+)／', parseResult['newsText'].encode('utf-8'), re.S)[0][1]
-					parseResult['author'] = author.decode('utf-8')
-				except TypeError:
-					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except IndexError:
-					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except AttributeError:
-					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except KeyError:
-					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
+				parseResult['author'] = self.__parseAuthor(parseResult['newsText'])
+				parseResult['location'] = self.__parseLocation(parseResult['newsText'])
+				if len(parseResult['author']) == 0:
+					self.logFile.write( "can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 
 
 				#Get type
@@ -706,22 +717,10 @@ class ltnSpider:
 					self.logFile.write( "KeyError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
-				try:
-					parseResult['author'] = ''
-					author = re.findall('〔(記者)?(.+)／', parseResult['newsText'].encode('utf-8'), re.S)[0][1]
-					parseResult['author'] = author.decode('utf-8')
-				except TypeError:
-					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except IndexError:
-					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except AttributeError:
-					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except KeyError:
-					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
+				parseResult['author'] = self.__parseAuthor(parseResult['newsText'])
+				parseResult['location'] = self.__parseLocation(parseResult['newsText'])
+				if len(parseResult['author']) == 0:
+					self.logFile.write( "can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 
 				#Get type
 				parseResult['type'] = u'娛樂'
@@ -798,22 +797,10 @@ class ltnSpider:
 					self.logFile.write( "KeyError: can't parse news text of the news - "+URL['ltn']['root']+news+'\r\n')
 					continue
 
-				try: 
-					parseResult['author'] = ''
-					author = re.findall('〔(記者)?(.+)／', parseResult['newsText'].encode('utf-8'), re.S)[0][1]
-					parseResult['author'] = author.decode('utf-8')
-				except TypeError:
-					self.logFile.write( "TypeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except IndexError:
-					self.logFile.write( "IndexError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except AttributeError:
-					self.logFile.write( "AttributeError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
-				except KeyError:
-					self.logFile.write( "KeyError: can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
-					continue
+				parseResult['author'] = self.__parseAuthor(parseResult['newsText'])
+				parseResult['location'] = self.__parseLocation(parseResult['newsText'])
+				if len(parseResult['author']) == 0:
+					self.logFile.write( "can't parse author of the news - "+URL['ltn']['root']+news+'\r\n')
 					
 				try: 
 					#Get type 
@@ -840,6 +827,36 @@ class ltnSpider:
 					lastData = parseResult
 					self.logFile.write( 'the last news is in ' + lastData['date'])
 			self.__writeToFile(parseResult)
+
+	def __parseAuthor(self, context):
+		conditions = [
+			u'〔(記者)?(.+)／.+〕',
+			u'〔(記者)?(.+)／'
+		]
+		for condition in conditions:
+			if len(re.findall(condition, context, re.S)) <= 0:
+				continue
+			parse = re.findall(condition, context, re.S)[0]
+			author = parse if len(parse) > 0 else ''
+			if len(author) > 1:
+				return author[1]
+
+		return ''
+
+	def __parseLocation(self, context):
+		conditions = [
+			u'〔(記者)?.+／(.+)〕'
+		]
+
+		for condition in conditions:
+			if len(re.findall(condition, context, re.S)) <= 0:
+				continue
+			parse = re.findall(condition, context, re.S)[0]
+			location = parse if len(parse) > 0 else ''
+			if len(location) > 1:
+				return location[1]
+
+		return ''
 				
 
 	def __writeToFile(self, data):
@@ -860,10 +877,10 @@ class ltnSpider:
 				raise OSError("Can't create folder, please check permission")
 		"""	
 		#f = open(self.directory+'/'+data['type']+'/'+data['date']+'_'+str(count)+'.txt', 'w')
-		f = codecs.open(self.directory+'/'+data['date']+'_'+str(self.count)+'.txt', 'w', 
+		f = codecs.open(self.directory+'/txt/'+data['date']+'_'+str(self.count)+'.txt', 'w', 
 			'utf-8')
 		f.write(u'\ufeff')
-		fXml = codecs.open(self.directory+'/'+data['date']+'_'+str(self.count)+'.xml', 'w', 'utf-8')
+		fXml = codecs.open(self.directory+'/xml/'+data['date']+'_'+str(self.count)+'.xml', 'w', 'utf-8')
 		fXml.write(u'\ufeff')
 
 		#過濾「記者」
@@ -875,7 +892,11 @@ class ltnSpider:
 		f.write(u'Date:'+data['date']+'\r\n')
 		f.write('Time:'+data['time']+'\r\n')
 		f.write('Category:'+data['type']+'\r\n')
-		f.write(u'Author:'+data['author']+'\r\n')
+		f.write(u'Author:')
+		for author in data['author'].split(u'、'):
+			f.write(author+' ')
+		f.write('\r\n')
+		f.write('Location:'+data['location']+'\r\n')
 		f.write('Content:'+data['newsText']+'\r\n')
 		f.close()
 
@@ -892,6 +913,7 @@ class ltnSpider:
 		for author in data['author'].split(u'、'):
 			fXml.write(u'<Author>'+author+'</Author>\r\n')
 		fXml.write('</Authors>\r\n')
+		fXml.write('<Location>'+data['location']+'</Location>\r\n')
 		fXml.write('<Content>'+data['newsText']+'</Content>\r\n')
 		fXml.write('</Article>')
 		fXml.close()
@@ -906,20 +928,15 @@ class ltnSpider:
 		self.newsList = []
 		self.__getList()
 		self.__getContent()
-
-class ListGetError:
-	def __init__(self, arg):
-		self.messages = arg
-
-class ParseError:
-	def __init__(self, arg):
-		self.messages = arg
 		
 		
 
-if len(sys.argv) > 2 and sys.argv[1] != 'ltn-realtime':
+if len(sys.argv) > 2:
 	startDay = datetime.date(int(sys.argv[2][0:4]), int(sys.argv[2][5:7]), int(sys.argv[2][8:10]))
-	endDay = datetime.date(int(sys.argv[3][0:4]), int(sys.argv[3][5:7]), int(sys.argv[3][8:10]))
+	if len(sys.argv) > 3:
+		endDay = datetime.date(int(sys.argv[3][0:4]), int(sys.argv[3][5:7]), int(sys.argv[3][8:10]))
+	else:
+		endDay = startDay + datetime.timedelta(days=1)
 
 if sys.argv[1] == 'chinatimes':
 	chinatime_spider = chinatimesSpider()
